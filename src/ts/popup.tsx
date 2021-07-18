@@ -4,12 +4,12 @@ import ReactDOM from "react-dom";
 import CurrentUrl from "./CurrentTab";
 
 class App extends React.Component {
-    render () {
+    render() {
         return (
             <div>
                 <CurrentUrl />
             </div>
-        )
+        );
     }
 }
 
