@@ -1,0 +1,13 @@
+{
+    "name": "QR Scanner",
+    "version": "1.0",
+    "manifest_version": 3,
+    "action": {
+        "default_title": "QR Scanner",
+        "default_popup": "popup.html"
+    },
+    "permissions": [
+        "activeTab",
+        "clipboardWrite"
+    ]
+}
