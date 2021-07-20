@@ -1,19 +1,23 @@
 const path = require("path");
+const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const WebpackExtensionManifestPlugin = require("webpack-extension-manifest-plugin");
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 
-// const baseManifest = require("./src/manifest.json");
+const baseManifest = require("./src/manifest.json");
+const package_ = require("./package.json");
 
 module.exports = {
     entry: {
-        popup: path.join(__dirname, "src", "ts", "popup.tsx"),
+        popup: path.join(__dirname, "src", "ts", "index.tsx"),
         // worker: path.join(__dirname, "src", "ts", "worker", "worker.ts")
     },
     output: {
-        path: path.join(__dirname, "build"),
+        // path: path.join(__dirname, "build"),
+        path: "/qr-display-build",
         filename: "[name].js",
         assetModuleFilename: "[name][ext]"
     },
@@ -43,25 +47,24 @@ module.exports = {
                 type: "asset/resource"
             },
             // Styles
-            // {
-            //     test: /\.(sa|sc|c)ss$/i,
-            //     use: ["style-loader", {loader: MiniCssExtractPlugin.loader, options: {esModule: false}}, "css-loader", "sass-loader"]
-            // }
+            {
+                test: /\.(sa|sc|c)ss$/i,
+                include: path.resolve(__dirname, "src/styles"),
+                exclude: /node_modules/i,
+                use: ["style-loader", {loader: MiniCssExtractPlugin.loader, options: {esModule: false}}, "css-loader", "sass-loader"]
+            }
         ]
     },
     resolve: {
-        extensions: [".ts", ".tsx", ".js", ".jsx"]
+        extensions: [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"]
     },
     plugins: [
-        new NodePolyfillPlugin({
-            excludeAliases: ["console"]
-        }),
-        // new MiniCssExtractPlugin(),
-        // new CopyWebpackPlugin({
-        //     patterns: [
-        //         { from: path.join(__dirname, "src", "static"), to: "." }
-        //     ]
+        new webpack.ProgressPlugin(),
+        new CleanWebpackPlugin(),
+        // new NodePolyfillPlugin({
+        //     excludeAliases: ["console"]
         // }),
+        new MiniCssExtractPlugin(),
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, "./src/html/popup.html"),
             filename: "popup.html",
@@ -76,10 +79,18 @@ module.exports = {
             },
             manifest: "manifest.json"
         }),
-        // new WebpackExtensionManifestPlugin({
-        //     config: {
-        //         base: baseManifest
-        //     }
-        // })
+        new WebpackExtensionManifestPlugin({
+            config: {
+                base: baseManifest,
+                extend: {
+                    version: package_.version
+                }
+            }
+        }),
+        // new CopyWebpackPlugin({
+        //     patterns: [
+        //         { from: path.join(__dirname, "src", "static"), to: "." }
+        //     ]
+        // }),
     ]
 }
