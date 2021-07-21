@@ -1,8 +1,6 @@
 import React, { Component } from "react";
-import { Image } from "@chakra-ui/react";
+import { Image, Spinner } from "@chakra-ui/react";
 import QRCode from "qrcode";
-
-import { Translation } from "react-i18next";
 
 export default class QRGenerate extends Component<Props, State> {
     constructor(props: Props) {
@@ -12,19 +10,17 @@ export default class QRGenerate extends Component<Props, State> {
     }
 
     componentDidMount() {
-        QRCode.toDataURL(this.state.data)
-            .then(uri => {
-                this.setState({ rendered: uri });
-            });
+        QRCode.toDataURL(this.state.data).then((uri) => {
+            this.setState({ rendered: uri });
+        });
     }
 
     render() {
-        return (
-            <figure>
-                <Image src={ this.state.rendered } />
-                <figcaption>{this.props.data}</figcaption>
-            </figure>
-        )
+        return this.state.rendered !== undefined ? (
+            <Image src={this.state.rendered} />
+        ) : (
+            <Spinner />
+        );
     }
 }
 

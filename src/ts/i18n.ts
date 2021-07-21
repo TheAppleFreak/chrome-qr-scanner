@@ -4,20 +4,19 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import enTranslation from "../locales/en/messages.json";
 
-i18n
-    .use(LanguageDetector)
+i18n.use(LanguageDetector)
     .use(initReactI18next)
     .init({
         debug: true,
         fallbackLng: "en",
         interpolation: {
-            escapeValue: false
+            escapeValue: false,
         },
         resources: {
             en: {
-                translation: enTranslation
-            }
-        }
+                translation: enTranslation,
+            },
+        },
     });
 
 export default i18n;

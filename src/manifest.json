@@ -1,13 +1,19 @@
 {
     "name": "QR Scanner",
-    "version": "1.0",
     "manifest_version": 3,
+    "offline_enabled": true,
     "action": {
-        "default_title": "QR Scanner",
-        "default_popup": "popup.html"
+        "default_title": "QR Scanner"
+    },
+    "background": {
+        "service_worker": "background.js"
     },
     "permissions": [
         "activeTab",
-        "clipboardWrite"
+        "clipboardWrite",
+        "storage"
+    ],
+    "optional_permissions": [
+        "tabs"
     ]
 }

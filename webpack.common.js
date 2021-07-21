@@ -2,7 +2,6 @@ const path = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const WebpackExtensionManifestPlugin = require("webpack-extension-manifest-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
@@ -12,11 +11,14 @@ const package_ = require("./package.json");
 
 module.exports = {
     entry: {
-        popup: path.join(__dirname, "src", "ts", "index.tsx"),
-        // worker: path.join(__dirname, "src", "ts", "worker", "worker.ts")
+        background: path.join(__dirname, "src", "ts", "background", "index.ts"),
+        options: path.join(__dirname, "src", "ts", "options", "index.tsx"),
+        popup: path.join(__dirname, "src", "ts", "popup", "index.tsx")
     },
     output: {
-        // path: path.join(__dirname, "build"),
+        // Since compilation is many times faster on a Linux FS than on Windows, 
+        // we build in a container then spit out to this directory, which is a FS
+        // mount to Windows.
         path: "/qr-display-build",
         filename: "[name].js",
         assetModuleFilename: "[name][ext]"
@@ -52,6 +54,11 @@ module.exports = {
                 include: path.resolve(__dirname, "src/styles"),
                 exclude: /node_modules/i,
                 use: ["style-loader", {loader: MiniCssExtractPlugin.loader, options: {esModule: false}}, "css-loader", "sass-loader"]
+            },
+            // QR Scanner Worker
+            {
+                test: require.resolve("qr-scanner/qr-scanner-worker.min.js"),
+                type: "asset/resource"
             }
         ]
     },
@@ -61,9 +68,6 @@ module.exports = {
     plugins: [
         new webpack.ProgressPlugin(),
         new CleanWebpackPlugin(),
-        // new NodePolyfillPlugin({
-        //     excludeAliases: ["console"]
-        // }),
         new MiniCssExtractPlugin(),
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, "./src/html/popup.html"),
@@ -72,6 +76,20 @@ module.exports = {
             chunks: ["popup"],
 
             title: "QR Scanner",
+            meta: {
+                charset: "utf-8",
+                viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
+                "theme-color": "#000000"
+            },
+            manifest: "manifest.json"
+        }),
+        new HtmlWebpackPlugin({
+            template: path.resolve(__dirname, "./src/html/options.html"),
+            filename: "options.html",
+            inject: "body",
+            chunks: ["options"],
+
+            title: "QR Scanner Options",
             meta: {
                 charset: "utf-8",
                 viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
