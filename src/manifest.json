@@ -11,9 +11,9 @@
     "permissions": [
         "activeTab",
         "clipboardWrite",
-        "storage"
+        "storage",
+        "tabs"
     ],
     "optional_permissions": [
-        "tabs"
     ]
 }

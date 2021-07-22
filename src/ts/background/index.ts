@@ -5,7 +5,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     const tabs = await getTabs();
     chrome.storage.local.set({
         initialTab: tab,
-        initialTabs: tabs,
+        allTabs: tabs,
     });
 
     const popupUrl = chrome.runtime.getURL("popup.html");
@@ -22,11 +22,14 @@ chrome.runtime.onMessage.addListener(async ({ msgType }: Message) => {
     switch (msgType) {
         case "getInitialTabs":
             chrome.storage.local.get(
-                ["initialTab", "initialTabs"],
-                (initialTabs) => {
+                ["initialTab", "allTabs"],
+                ({ initialTab, allTabs }) => {
                     chrome.runtime.sendMessage({
                         msgType: "initialTabs",
-                        data: initialTabs,
+                        data: {
+                            initialTab,
+                            allTabs,
+                        },
                     });
                 },
             );
