@@ -67,7 +67,9 @@ module.exports = {
     },
     plugins: [
         new webpack.ProgressPlugin(),
-        new CleanWebpackPlugin(),
+        new CleanWebpackPlugin({
+            protectWebpackAssets: false
+        }),
         new MiniCssExtractPlugin(),
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, "./src/html/popup.html"),

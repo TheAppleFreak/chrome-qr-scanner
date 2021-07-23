@@ -1,10 +1,10 @@
-import React, { Component, Suspense } from "react";
-import { VStack } from "@chakra-ui/react";
+import React, { Component, Suspense, ChangeEvent } from "react";
+import { Center, Spinner, Stack, Input } from "@chakra-ui/react";
 import Select from "react-select";
-import i18next, { TFunction } from "i18next";
 import { withTranslation, WithTranslation } from "react-i18next";
 import { Message } from "../types";
 import _ from "lodash";
+import md5 from "md5";
 
 const QRGenerate = React.lazy(() => import("./QRGenerate"));
 
@@ -13,8 +13,10 @@ class GenerateTab extends Component<Props, State> {
         super(props);
 
         this.state = {
-            selected: "",
-            key: 0,
+            data: "",
+            selected: undefined,
+            selKey: "",
+            qrKey: "",
             options: [],
         };
     }
@@ -30,9 +32,10 @@ class GenerateTab extends Component<Props, State> {
     onMessage({ msgType, data }: Message) {
         switch (msgType) {
             case "initialTabs": {
-                console.log(data);
                 const initialTab: chrome.tabs.Tab = data.initialTab;
                 const allTabs: chrome.tabs.Tab[] = data.allTabs;
+                const initialTabGroups: chrome.tabGroups.TabGroup[] =
+                    data.initialTabGroups;
                 const options: Array<SelGroup | SelOption> = [];
 
                 if (allTabs.length === 1) {
@@ -64,49 +67,118 @@ class GenerateTab extends Component<Props, State> {
                                 return 0;
                             }
                         });
+                    } else {
+                        const tab = allTabs.filter((tab) => tab.active);
 
-                        // Get all window and tab group IDs deduped
-                        const groups = _.uniqWith(
-                            allTabs.map((tab) => {
-                                return {
-                                    windowId: tab.windowId,
-                                    groupId: tab.groupId,
-                                };
-                            }),
-                            _.isEqual,
-                        );
-
-                        groups.map((group) => {
-                            const matchingTabs = allTabs.filter((tab) => {
-                                return (
-                                    tab.windowId === group.windowId
-                                );
-                            });
-
-                            // Does the window only have one tab group? Just lump everything into one group
-                            const groupLabel =
-                                groups.filter(
-                                    (grp) => grp.windowId === group.windowId,
-                                ).length === 1
-                                    ? this.props.t("selWinOnlyGroup", {
-                                          tabs: matchingTabs.length,
-                                      })
-                                    : this.props.t("selWinGroup", {
-                                          tabs: matchingTabs.length,
-                                      });
+                        options.push({
+                            label: tab[0].title!,
+                            value: tab[0].url,
                         });
                     }
+
+                    // Sort by window, then by tab group
+                    let groups: { windowId: number; groupId: number }[] = [];
+                    let uniqWindows: number[] = [];
+                    allTabs.map((tab) => {
+                        groups.push({
+                            windowId: tab.windowId,
+                            groupId: tab.groupId,
+                        });
+                        uniqWindows.push(tab.windowId);
+                    });
+
+                    // Sort by IDs for neatness (and convert the sets to arrays so we can index them)
+                    groups = groups.sort((group1, group2) => {
+                        if (
+                            group1.windowId < group2.windowId ||
+                            group1.groupId > group2.windowId
+                        ) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    });
+                    groups = _.uniqWith(groups, _.isEqual);
+                    uniqWindows = _.uniq(uniqWindows.sort((a, b) => a - b));
+
+                    // Finally, construct the option groups
+                    groups.map((group) => {
+                        // Find the group in the listing so we can pull info
+                        let groupLabel: string;
+                        let color: string | undefined;
+                        const winIndex = uniqWindows.indexOf(group.windowId);
+                        if (group.groupId === -1) {
+                            groupLabel = this.props.t("selWindowUnsortedTabs", {
+                                winIndex: winIndex + 1,
+                            });
+                        } else {
+                            const tabGroup = initialTabGroups.find((grp) => {
+                                return (
+                                    grp.windowId === group.windowId &&
+                                    grp.id === group.groupId
+                                );
+                            })!;
+
+                            color = tabGroup.color;
+                            if (tabGroup.title) {
+                                groupLabel = this.props.t(
+                                    "selWindowNamedTabGroup",
+                                    {
+                                        winIndex: winIndex + 1,
+                                        groupName: tabGroup.title,
+                                        color: tabGroup.color,
+                                    },
+                                );
+                            } else {
+                                groupLabel = this.props.t(
+                                    "selWindowUnnamedTabGroup",
+                                    {
+                                        winIndex: winIndex + 1,
+                                        color: tabGroup.color,
+                                    },
+                                );
+                            }
+                        }
+
+                        options.push({
+                            label: groupLabel,
+                            color,
+                            options: allTabs
+                                .filter(
+                                    (tab) =>
+                                        tab.windowId === group.windowId &&
+                                        tab.groupId === group.groupId,
+                                )
+                                .map((tab) => {
+                                    return {
+                                        label: tab.title!,
+                                        value: tab.url!,
+                                    };
+                                }),
+                        });
+                    });
                 }
 
                 options.push({
-                    label: this.props.t("selManualEntry"),
-                    value: "manual",
+                    label: "---------------",
+                    options: [
+                        {
+                            label: this.props.t("selManualEntry"),
+                            value: "manual",
+                        },
+                    ],
                 });
 
-                console.log("Options", options);
+                const selected = Object.keys(options[0]).includes("options")
+                    ? ((options[0] as SelGroup).options[0] as SelOption)
+                    : (options[0] as SelOption);
 
                 this.setState({
+                    selected,
+                    data: selected.value,
                     options: options,
+                    selKey: md5(selected.value),
+                    qrKey: md5(selected.value),
                 });
 
                 break;
@@ -114,8 +186,66 @@ class GenerateTab extends Component<Props, State> {
         }
     }
 
+    selOnChange(e: SelGroup | SelOption | null) {
+        this.setState({
+            data: (e as SelOption).value,
+            selected: e,
+            qrKey: md5((e as SelOption).value),
+        });
+    }
+
+    inputOnChange(e: ChangeEvent<HTMLInputElement>) {
+        this.setState({
+            data: (e.target as HTMLInputElement).value,
+            qrKey: md5((e.target as HTMLInputElement).value),
+        });
+    }
+
     render() {
-        return <Select options={this.state.options} />;
+        return (
+            <Stack>
+                <Select
+                    options={this.state.options}
+                    key={this.state.selKey}
+                    styles={{
+                        option: (styles) => {
+                            return {
+                                ...styles,
+                                color: "#111",
+                            };
+                        },
+                    }}
+                    defaultValue={
+                        this.state.options.length > 0
+                            ? Object.keys(this.state.options[0]).includes(
+                                  "options",
+                              )
+                                ? (this.state.options[0] as SelGroup).options[0]
+                                : this.state.options[0]
+                            : undefined
+                    }
+                    onChange={(ev) => this.selOnChange(ev)}
+                />
+                <Center>
+                    {this.state.selected ? (
+                        (this.state.selected as SelOption).value ===
+                        "manual" ? (
+                            <Input onChange={(e) => this.inputOnChange(e)} />
+                        ) : undefined
+                    ) : undefined}
+                </Center>
+                <Center>
+                    {this.state.selected ? (
+                        <Suspense fallback={<Spinner />}>
+                            <QRGenerate
+                                data={this.state.data!}
+                                key={this.state.qrKey}
+                            />
+                        </Suspense>
+                    ) : undefined}
+                </Center>
+            </Stack>
+        );
     }
 }
 
@@ -124,8 +254,10 @@ export default withTranslation(["generateTab"])(GenerateTab);
 interface Props extends WithTranslation {}
 
 interface State {
-    selected: string;
-    key: string | number;
+    data?: string;
+    selected?: SelGroup | SelOption | null;
+    selKey: string;
+    qrKey: string;
     options: Array<SelOption | SelGroup>;
 }
 
@@ -136,5 +268,6 @@ interface SelOption {
 
 interface SelGroup {
     label: string;
+    color?: string;
     options: SelOption[];
 }

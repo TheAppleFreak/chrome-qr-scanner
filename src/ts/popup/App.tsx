@@ -1,23 +1,19 @@
-import React, { ChangeEventHandler, Component, Suspense } from "react";
+import React, { Component, Suspense } from "react";
 import {
-    Center,
     TabPanels,
     Tabs,
     Tab,
     TabPanel,
     TabList,
     Spinner,
-    VStack,
 } from "@chakra-ui/react";
-import { Translation } from "react-i18next";
+import { withTranslation, WithTranslation } from "react-i18next";
 import { Message } from "../types";
 
 const GenerateTab = React.lazy(() => import("./GenerateTab"));
 
-export default class App extends Component<{}, State> {
-    private settings: any;
-
-    constructor(props: {}) {
+class App extends Component<Props, State> {
+    constructor(props: Props) {
         super(props);
 
         this.state = {
@@ -61,16 +57,8 @@ export default class App extends Component<{}, State> {
         return (
             <Tabs isLazy>
                 <TabList>
-                    <Tab>
-                        <Translation>
-                            {(t, { i18n }) => t("generateTab")}
-                        </Translation>
-                    </Tab>
-                    <Tab>
-                        <Translation>
-                            {(t, { i18n }) => t("scanTab")}
-                        </Translation>
-                    </Tab>
+                    <Tab>{this.props.t("generateTab")}</Tab>
+                    <Tab>{this.props.t("scanTab")}</Tab>
                 </TabList>
                 <TabPanels>
                     <TabPanel>
@@ -86,6 +74,10 @@ export default class App extends Component<{}, State> {
         );
     }
 }
+
+export default withTranslation(["app"])(App);
+
+interface Props extends WithTranslation {}
 
 interface State {
     current?: chrome.tabs.Tab;
