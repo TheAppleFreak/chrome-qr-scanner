@@ -1,5 +1,9 @@
 import React, { Component, Suspense } from "react";
 import {
+    Box,
+    Grid,
+    Icon,
+    Portal,
     TabPanels,
     Tabs,
     Tab,
@@ -7,13 +11,14 @@ import {
     TabList,
     Spinner,
 } from "@chakra-ui/react";
+import { IoCamera, IoQrCode } from "react-icons/io5";
 import { withTranslation, WithTranslation } from "react-i18next";
 import { Message } from "../types";
 
 const GenerateTab = React.lazy(() => import("./GenerateTab"));
 
-class App extends Component<Props, State> {
-    constructor(props: Props) {
+class App extends Component<IProps, IState> {
+    constructor(props: IProps) {
         super(props);
 
         this.state = {
@@ -55,18 +60,21 @@ class App extends Component<Props, State> {
 
     render() {
         return (
-            <Tabs isLazy>
-                <TabList>
-                    <Tab>{this.props.t("generateTab")}</Tab>
-                    <Tab>{this.props.t("scanTab")}</Tab>
+            <Tabs isFitted isLazy lazyBehavior="unmount" 
+                align="center" display="flex" flexDir="column"
+                height="100%"
+            >
+                <TabList flexShrink={0}>
+                    <Tab><Icon as={IoQrCode} mr="1.5" /> {this.props.t("generateTab")}</Tab>
+                    <Tab><Icon as={IoCamera} mr="1.5" /> {this.props.t("scanTab")}</Tab>
                 </TabList>
                 <TabPanels>
-                    <TabPanel>
-                        <Suspense fallback={<Spinner />}>
+                    <TabPanel height="100%" display="flex" flexDirection="column">
+                        <Suspense fallback={<Spinner />} >
                             <GenerateTab />
                         </Suspense>
                     </TabPanel>
-                    <TabPanel>
+                    <TabPanel height="100%" display="flex" flexDirection="column">
                         <p>temp</p>
                     </TabPanel>
                 </TabPanels>
@@ -77,9 +85,9 @@ class App extends Component<Props, State> {
 
 export default withTranslation(["app"])(App);
 
-interface Props extends WithTranslation {}
+interface IProps extends WithTranslation {}
 
-interface State {
+interface IState {
     current?: chrome.tabs.Tab;
     tabs: { [key: string]: chrome.tabs.Tab[] };
     isReady: boolean;

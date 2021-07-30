@@ -1,9 +1,12 @@
-import React, { Component, Suspense, ChangeEvent } from "react";
-import { Center, Spinner, Stack, Input } from "@chakra-ui/react";
+import React, { Component, Suspense, ChangeEvent, Fragment } from "react";
+import { Box, Spinner, Input } from "@chakra-ui/react";
 import Select from "react-select";
 import { withTranslation, WithTranslation } from "react-i18next";
 import { Message } from "../types";
-import _ from "lodash";
+// This is tree-shaking friendly
+import uniq from "lodash/uniq";
+import uniqWith from "lodash/uniqWith";
+import isEqual from "lodash/isEqual";
 import md5 from "md5";
 
 const QRGenerate = React.lazy(() => import("./QRGenerate"));
@@ -98,8 +101,8 @@ class GenerateTab extends Component<Props, State> {
                             return 1;
                         }
                     });
-                    groups = _.uniqWith(groups, _.isEqual);
-                    uniqWindows = _.uniq(uniqWindows.sort((a, b) => a - b));
+                    groups = uniqWith(groups, isEqual);
+                    uniqWindows = uniq(uniqWindows.sort((a, b) => a - b));
 
                     // Finally, construct the option groups
                     groups.map((group) => {
@@ -203,48 +206,49 @@ class GenerateTab extends Component<Props, State> {
 
     render() {
         return (
-            <Stack>
-                <Select
-                    options={this.state.options}
-                    key={this.state.selKey}
-                    styles={{
-                        option: (styles) => {
-                            return {
-                                ...styles,
-                                color: "#111",
-                            };
-                        },
-                    }}
-                    defaultValue={
-                        this.state.options.length > 0
-                            ? Object.keys(this.state.options[0]).includes(
-                                  "options",
-                              )
-                                ? (this.state.options[0] as SelGroup).options[0]
-                                : this.state.options[0]
-                            : undefined
-                    }
-                    onChange={(ev) => this.selOnChange(ev)}
-                />
-                <Center>
+            <Fragment>
+                    <Select
+                        options={this.state.options}
+                        key={this.state.selKey}
+                        styles={{
+                            option: (styles) => {
+                                return {
+                                    ...styles,
+                                    color: "#111",
+                                };
+                            },
+                        }}
+                        defaultValue={
+                            this.state.options.length > 0
+                                ? Object.keys(this.state.options[0]).includes(
+                                    "options",
+                                )
+                                    ? (this.state.options[0] as SelGroup).options[0]
+                                    : this.state.options[0]
+                                : undefined
+                        }
+                        onChange={(ev) => this.selOnChange(ev)}
+                    />
+
+                    <Box pt="4" pb="2" minHeight="var(--chakra-sizes-10)">
                     {this.state.selected ? (
                         (this.state.selected as SelOption).value ===
                         "manual" ? (
-                            <Input onChange={(e) => this.inputOnChange(e)} />
-                        ) : undefined
-                    ) : undefined}
-                </Center>
-                <Center>
+                                <Input onChange={(e) => this.inputOnChange(e)} />
+                                ) : undefined
+                                ) : undefined}
+                    </Box>
                     {this.state.selected ? (
-                        <Suspense fallback={<Spinner />}>
-                            <QRGenerate
-                                data={this.state.data!}
-                                key={this.state.qrKey}
-                            />
-                        </Suspense>
+                        <Box position="relative" display="flex" justifyContent="center" alignItems="center" height="275px" pt="2">
+                            <Suspense fallback={<Spinner />}>
+                                <QRGenerate
+                                    data={this.state.data}
+                                    key={this.state.qrKey}
+                                />
+                            </Suspense>
+                        </Box>
                     ) : undefined}
-                </Center>
-            </Stack>
+            </Fragment>
         );
     }
 }
