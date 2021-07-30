@@ -207,47 +207,54 @@ class GenerateTab extends Component<Props, State> {
     render() {
         return (
             <Fragment>
-                    <Select
-                        options={this.state.options}
-                        key={this.state.selKey}
-                        styles={{
-                            option: (styles) => {
-                                return {
-                                    ...styles,
-                                    color: "#111",
-                                };
-                            },
-                        }}
-                        defaultValue={
-                            this.state.options.length > 0
-                                ? Object.keys(this.state.options[0]).includes(
-                                    "options",
-                                )
-                                    ? (this.state.options[0] as SelGroup).options[0]
-                                    : this.state.options[0]
-                                : undefined
-                        }
-                        onChange={(ev) => this.selOnChange(ev)}
-                    />
+                <Select
+                    options={this.state.options}
+                    key={this.state.selKey}
+                    styles={{
+                        option: (styles) => {
+                            return {
+                                ...styles,
+                                color: "#111",
+                            };
+                        },
+                    }}
+                    defaultValue={
+                        this.state.options.length > 0
+                            ? Object.keys(this.state.options[0]).includes(
+                                  "options",
+                              )
+                                ? (this.state.options[0] as SelGroup).options[0]
+                                : this.state.options[0]
+                            : undefined
+                    }
+                    onChange={(ev) => this.selOnChange(ev)}
+                />
 
-                    <Box pt="4" pb="2" minHeight="var(--chakra-sizes-10)">
+                <Box pt="4" pb="2" minHeight="var(--chakra-sizes-10)">
                     {this.state.selected ? (
                         (this.state.selected as SelOption).value ===
                         "manual" ? (
-                                <Input onChange={(e) => this.inputOnChange(e)} />
-                                ) : undefined
-                                ) : undefined}
-                    </Box>
-                    {this.state.selected ? (
-                        <Box position="relative" display="flex" justifyContent="center" alignItems="center" height="275px" pt="2">
-                            <Suspense fallback={<Spinner />}>
-                                <QRGenerate
-                                    data={this.state.data}
-                                    key={this.state.qrKey}
-                                />
-                            </Suspense>
-                        </Box>
+                            <Input onChange={(e) => this.inputOnChange(e)} />
+                        ) : undefined
                     ) : undefined}
+                </Box>
+                {this.state.selected ? (
+                    <Box
+                        position="relative"
+                        display="flex"
+                        justifyContent="center"
+                        alignItems="center"
+                        height="275px"
+                        pt="2"
+                    >
+                        <Suspense fallback={<Spinner />}>
+                            <QRGenerate
+                                data={this.state.data}
+                                key={this.state.qrKey}
+                            />
+                        </Suspense>
+                    </Box>
+                ) : undefined}
             </Fragment>
         );
     }

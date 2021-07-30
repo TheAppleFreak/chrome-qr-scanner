@@ -60,21 +60,40 @@ class App extends Component<IProps, IState> {
 
     render() {
         return (
-            <Tabs isFitted isLazy lazyBehavior="unmount" 
-                align="center" display="flex" flexDir="column"
+            <Tabs
+                isFitted
+                isLazy
+                lazyBehavior="unmount"
+                align="center"
+                display="flex"
+                flexDir="column"
                 height="100%"
             >
                 <TabList flexShrink={0}>
-                    <Tab><Icon as={IoQrCode} mr="1.5" /> {this.props.t("generateTab")}</Tab>
-                    <Tab><Icon as={IoCamera} mr="1.5" /> {this.props.t("scanTab")}</Tab>
+                    <Tab>
+                        <Icon as={IoQrCode} mr="1.5" />{" "}
+                        {this.props.t("generateTab")}
+                    </Tab>
+                    <Tab>
+                        <Icon as={IoCamera} mr="1.5" />{" "}
+                        {this.props.t("scanTab")}
+                    </Tab>
                 </TabList>
                 <TabPanels>
-                    <TabPanel height="100%" display="flex" flexDirection="column">
-                        <Suspense fallback={<Spinner />} >
+                    <TabPanel
+                        height="100%"
+                        display="flex"
+                        flexDirection="column"
+                    >
+                        <Suspense fallback={<Spinner />}>
                             <GenerateTab />
                         </Suspense>
                     </TabPanel>
-                    <TabPanel height="100%" display="flex" flexDirection="column">
+                    <TabPanel
+                        height="100%"
+                        display="flex"
+                        flexDirection="column"
+                    >
                         <p>temp</p>
                     </TabPanel>
                 </TabPanels>
