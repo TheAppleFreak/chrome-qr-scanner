@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Image, Spinner, useColorMode } from "@chakra-ui/react";
+import { Image, Skeleton, useColorMode } from "@chakra-ui/react";
 import QRCode from "qrcode";
 
 // I think I have to do it this way because it might be annoying to get props on the main component otherwise
@@ -40,11 +40,17 @@ export default class QRGenerate extends Component<IProps, IState> {
         }
     }
 
+    public renderQRCode(): Promise<string> {
+        return QRCode.toDataURL(this.state.data, {
+            scale: 12,
+        });
+    }
+
     render() {
         return this.state.rendered !== undefined ? (
             <ImageFilter data={this.state.rendered} />
         ) : (
-            <Spinner />
+            <Skeleton w="267px" h="267px" />
         );
     }
 }

@@ -4,17 +4,19 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import enAppTranslation from "../locales/en/app.json";
 import enGenerateTabTranslation from "../locales/en/generateTab.json";
+import enOptionsTranslation from "../locales/en/options.json";
 
 i18n.use(LanguageDetector)
     .use(initReactI18next)
     .init({
         debug: true,
         fallbackLng: "en",
-        ns: ["app", "generateTab"],
+        ns: ["app", "generateTab", "options"],
         resources: {
             en: {
                 app: enAppTranslation,
                 generateTab: enGenerateTabTranslation,
+                options: enOptionsTranslation,
             },
         },
     });

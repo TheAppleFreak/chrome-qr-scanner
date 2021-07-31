@@ -77,7 +77,7 @@ module.exports = {
             inject: "body",
             chunks: ["popup"],
 
-            title: "QR Scanner",
+            title: baseManifest.name,
             meta: {
                 charset: "utf-8",
                 viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
@@ -91,7 +91,7 @@ module.exports = {
             inject: "body",
             chunks: ["options"],
 
-            title: "QR Scanner Options",
+            title: `${baseManifest.name} - Options`,
             meta: {
                 charset: "utf-8",
                 viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
@@ -103,6 +103,7 @@ module.exports = {
             config: {
                 base: baseManifest,
                 extend: {
+                    description: package_.description,
                     version: package_.version
                 }
             }

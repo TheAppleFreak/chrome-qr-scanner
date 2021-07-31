@@ -1,0 +1,7 @@
+{
+    "chkCloseOnBlur": "Close popup window on loss of focus",
+    "chkTabsAuth": "Allow extension access to all tabs across all windows",
+    "optionsHeading": "Options",
+    "permissionsHeading": "Permission Settings",
+    "popupHeading": "Popup Setttings"
+}

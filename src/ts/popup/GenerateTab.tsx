@@ -1,5 +1,5 @@
 import React, { Component, Suspense, ChangeEvent, Fragment } from "react";
-import { Box, Spinner, Input } from "@chakra-ui/react";
+import { Box, Button, HStack, Input, Spinner, VStack } from "@chakra-ui/react";
 import Select from "react-select";
 import { withTranslation, WithTranslation } from "react-i18next";
 import { Message } from "../types";
@@ -8,10 +8,16 @@ import uniq from "lodash/uniq";
 import uniqWith from "lodash/uniqWith";
 import isEqual from "lodash/isEqual";
 import md5 from "md5";
+import * as clipboard from "clipboard-polyfill";
+import { IoCopy, IoDownload, IoCheckmark } from "react-icons/io5";
 
 const QRGenerate = React.lazy(() => import("./QRGenerate"));
 
 class GenerateTab extends Component<Props, State> {
+    private copyBtnTimeout?: NodeJS.Timeout;
+    private saveBtnTimeout?: NodeJS.Timeout;
+    private qrRef: React.RefObject<any>;
+
     constructor(props: Props) {
         super(props);
 
@@ -21,7 +27,21 @@ class GenerateTab extends Component<Props, State> {
             selKey: "",
             qrKey: "",
             options: [],
+            copyBtn: {
+                color: "blue",
+                icon: <IoCopy />,
+                label: this.props.t("copyBtn"),
+                variant: "outline",
+            },
+            saveBtn: {
+                color: "blue",
+                icon: <IoDownload />,
+                label: this.props.t("saveBtn"),
+                variant: "outline",
+            },
         };
+
+        this.qrRef = React.createRef();
     }
 
     componentDidMount() {
@@ -190,11 +210,19 @@ class GenerateTab extends Component<Props, State> {
     }
 
     selOnChange(e: SelGroup | SelOption | null) {
-        this.setState({
-            data: (e as SelOption).value,
-            selected: e,
-            qrKey: md5((e as SelOption).value),
-        });
+        if ((e as SelOption).value !== "manual") {
+            this.setState({
+                data: (e as SelOption).value,
+                selected: e,
+                qrKey: md5((e as SelOption).value),
+            });
+        } else {
+            this.setState({
+                data: "",
+                selected: e,
+                qrKey: md5(""),
+            });
+        }
     }
 
     inputOnChange(e: ChangeEvent<HTMLInputElement>) {
@@ -202,6 +230,75 @@ class GenerateTab extends Component<Props, State> {
             data: (e.target as HTMLInputElement).value,
             qrKey: md5((e.target as HTMLInputElement).value),
         });
+    }
+
+    async copyOnClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+        const rendered: string = await this.qrRef!.current.renderQRCode();
+        // The ClipboardItem interface doesn't appear to be in Chrome as of this writing
+        const item = new clipboard.ClipboardItem({
+            "image/png": await (await fetch(rendered)).blob(),
+        });
+        await clipboard.write([item]);
+
+        this.setState({
+            copyBtn: {
+                color: "green",
+                label: this.props.t("copyBtnSuccess"),
+                icon: <IoCheckmark />,
+                variant: "solid",
+            },
+        });
+
+        if (this.copyBtnTimeout !== undefined) {
+            clearTimeout(this.copyBtnTimeout);
+        }
+        this.copyBtnTimeout = setTimeout(() => {
+            this.setState({
+                copyBtn: {
+                    color: "blue",
+                    label: this.props.t("copyBtn"),
+                    icon: <IoCopy />,
+                    variant: "outline",
+                },
+            });
+
+            this.copyBtnTimeout = undefined;
+        }, 3000);
+    }
+
+    async saveOnClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+        const rendered: string = await this.qrRef!.current.renderQRCode();
+
+        const link = document.createElement("a");
+        link.href = rendered;
+        link.download = "QR Code";
+        link.click();
+        link.remove();
+
+        this.setState({
+            saveBtn: {
+                color: "green",
+                label: this.props.t("saveBtnSuccess"),
+                icon: <IoCheckmark />,
+                variant: "solid",
+            },
+        });
+
+        if (this.saveBtnTimeout !== undefined) {
+            clearTimeout(this.saveBtnTimeout);
+        }
+        this.saveBtnTimeout = setTimeout(() => {
+            this.setState({
+                saveBtn: {
+                    color: "blue",
+                    label: this.props.t("saveBtn"),
+                    icon: <IoDownload />,
+                    variant: "outline",
+                },
+            });
+
+            this.saveBtnTimeout = undefined;
+        }, 3000);
     }
 
     render() {
@@ -234,26 +331,58 @@ class GenerateTab extends Component<Props, State> {
                     {this.state.selected ? (
                         (this.state.selected as SelOption).value ===
                         "manual" ? (
-                            <Input onChange={(e) => this.inputOnChange(e)} />
+                            <Input
+                                placeholder={this.props.t(
+                                    "inputUrlPlaceholder",
+                                )}
+                                onChange={(e) => this.inputOnChange(e)}
+                            />
                         ) : undefined
                     ) : undefined}
                 </Box>
                 {this.state.selected ? (
-                    <Box
+                    <HStack
                         position="relative"
-                        display="flex"
                         justifyContent="center"
                         alignItems="center"
                         height="275px"
                         pt="2"
+                        spacing={8}
                     >
                         <Suspense fallback={<Spinner />}>
                             <QRGenerate
                                 data={this.state.data}
                                 key={this.state.qrKey}
+                                ref={this.qrRef}
                             />
+                            <VStack
+                                alignItems="center"
+                                justifyContent="center"
+                                spacing={4}
+                            >
+                                <Button
+                                    leftIcon={this.state.copyBtn.icon}
+                                    minWidth="120px"
+                                    colorScheme={this.state.copyBtn.color}
+                                    variant={this.state.copyBtn.variant}
+                                    disabled={this.state.data === ""}
+                                    onClick={(e) => this.copyOnClick(e)}
+                                >
+                                    {this.state.copyBtn.label}
+                                </Button>
+                                <Button
+                                    leftIcon={this.state.saveBtn.icon}
+                                    minWidth="120px"
+                                    colorScheme={this.state.saveBtn.color}
+                                    variant={this.state.saveBtn.variant}
+                                    disabled={this.state.data === ""}
+                                    onClick={(e) => this.saveOnClick(e)}
+                                >
+                                    {this.state.saveBtn.label}
+                                </Button>
+                            </VStack>
                         </Suspense>
-                    </Box>
+                    </HStack>
                 ) : undefined}
             </Fragment>
         );
@@ -270,6 +399,24 @@ interface State {
     selKey: string;
     qrKey: string;
     options: Array<SelOption | SelGroup>;
+    copyBtn: {
+        color: string;
+        icon: React.ReactElement<
+            any,
+            string | React.JSXElementConstructor<any>
+        >;
+        label: string;
+        variant: string;
+    };
+    saveBtn: {
+        color: string;
+        icon: React.ReactElement<
+            any,
+            string | React.JSXElementConstructor<any>
+        >;
+        label: string;
+        variant: string;
+    };
 }
 
 interface SelOption {

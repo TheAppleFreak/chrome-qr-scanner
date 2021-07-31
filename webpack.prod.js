@@ -10,7 +10,7 @@ module.exports = merge(common, {
         minimize: true,
         minimizer: [new TerserPlugin()],
         splitChunks: {
-            chunks(chunk){ return chunk.name !== "background" },
+            chunks(chunk){ return chunk.name !== "background" && chunk.name !== "options" },
             minSize: 0,
             maxInitialRequests: 20,
             maxAsyncRequests: 20,

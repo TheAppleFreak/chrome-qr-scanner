@@ -1,6 +1,11 @@
 {
+    "copyBtn": "Copy",
+    "copyBtnSuccess": "Copied!",
+    "inputUrlPlaceholder": "Manual URL Entry",
+    "saveBtn": "Save",
+    "saveBtnSuccess": "Saved!",
     "selActiveTabGroupLabel": "Active tabs",
-    "selManualEntry": "Enter data manually...",
+    "selManualEntry": "Enter URL manually...",
     "selWindowNamedTabGroup": "$t(selWindowUnsortedTabs) - {{groupName}} ({{color}})",
     "selWindowUnnamedTabGroup": "$t(selWindowUnsortedTabs) - {{color}} group",
     "selWindowUnsortedTabs": "Window {{winIndex}}"

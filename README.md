@@ -1,2 +1,3 @@
 # chrome-qr-scanner
-A Chrome extension that allows you to scan QR codes and open links in new tabs.
+
+A Chrome extension that allows you to create and scan QR codes using your webcam.

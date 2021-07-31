@@ -1,9 +1,7 @@
 import React, { Component, Suspense } from "react";
 import {
     Box,
-    Grid,
     Icon,
-    Portal,
     TabPanels,
     Tabs,
     Tab,
@@ -13,7 +11,8 @@ import {
 } from "@chakra-ui/react";
 import { IoCamera, IoQrCode } from "react-icons/io5";
 import { withTranslation, WithTranslation } from "react-i18next";
-import { Message } from "../types";
+import { Message, Settings } from "../types";
+import SettingsValidator from "../settingsSchema";
 
 const GenerateTab = React.lazy(() => import("./GenerateTab"));
 
@@ -22,44 +21,54 @@ class App extends Component<IProps, IState> {
         super(props);
 
         this.state = {
-            current: undefined,
-            tabs: {},
-            isReady: false,
-            generate: {
-                data: "",
-                key: 0,
-            },
+            isSettingsLoaded: false,
+            closeOnBlur: true,
         };
     }
 
     componentDidMount() {
-        // Set up message handlers, since this appears to be a big buggy in the constructor
+        // Set up message handlers
         chrome.runtime.onMessage.addListener((msg) => this.onMessage(msg));
 
         // Add handler for program dismissal logic
         window.addEventListener("blur", () => this.onBlur());
 
         // Send request for settings
-        // chrome.runtime.sendMessage({
-        //     type: "reqSettings"
-        // }, (settings) => {
-        //     // Clean this up later
-        //     this.settings = settings;
-        // });
-
-        // Send request for initial tabs
-        chrome.runtime.sendMessage({ msgType: "getInitialTabs" });
+        chrome.runtime.sendMessage({ msgType: "getSettings" });
     }
 
     onMessage({ msgType, data }: Message) {
         switch (msgType) {
+            case "settings": {
+                const settings: Settings = Object.assign({}, data.settings);
+
+                if (SettingsValidator(settings)) {
+                    this.setState({
+                        isSettingsLoaded: true,
+
+                        // TODO: Update this with a properly validated setup later
+                        closeOnBlur:
+                            settings.closeOnBlur !== undefined
+                                ? settings.closeOnBlur
+                                : true,
+                    });
+                } else {
+                    console.error("shit's broke sorry");
+                }
+
+                break;
+            }
         }
     }
 
-    async onBlur() {}
+    async onBlur() {
+        if (this.state.closeOnBlur) {
+            window.top.close();
+        }
+    }
 
     render() {
-        return (
+        return this.state.isSettingsLoaded ? (
             <Tabs
                 isFitted
                 isLazy
@@ -68,15 +77,15 @@ class App extends Component<IProps, IState> {
                 display="flex"
                 flexDir="column"
                 height="100%"
+                overflow="hidden"
             >
                 <TabList flexShrink={0}>
                     <Tab>
-                        <Icon as={IoQrCode} mr="1.5" />{" "}
+                        <Icon as={IoQrCode} mr="2" />{" "}
                         {this.props.t("generateTab")}
                     </Tab>
-                    <Tab>
-                        <Icon as={IoCamera} mr="1.5" />{" "}
-                        {this.props.t("scanTab")}
+                    <Tab isDisabled={true}>
+                        <Icon as={IoCamera} mr="2" /> {this.props.t("scanTab")}
                     </Tab>
                 </TabList>
                 <TabPanels>
@@ -98,6 +107,16 @@ class App extends Component<IProps, IState> {
                     </TabPanel>
                 </TabPanels>
             </Tabs>
+        ) : (
+            <Box
+                width="100%"
+                height="100vh"
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+            >
+                <Spinner />
+            </Box>
         );
     }
 }
@@ -107,11 +126,6 @@ export default withTranslation(["app"])(App);
 interface IProps extends WithTranslation {}
 
 interface IState {
-    current?: chrome.tabs.Tab;
-    tabs: { [key: string]: chrome.tabs.Tab[] };
-    isReady: boolean;
-    generate: {
-        data: string;
-        key: string | number;
-    };
+    isSettingsLoaded: boolean;
+    closeOnBlur: boolean;
 }
