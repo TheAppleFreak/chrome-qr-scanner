@@ -83,6 +83,12 @@ class App extends Component<IProps, IState> {
     async onGrantPermsClick(
         e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
     ) {
+        // Make sure that the window won't immediately close
+        const initialCloseSetting = this.state.closeOnBlur;
+        this.setState({
+            closeOnBlur: false
+        });
+
         let resolve: (value: boolean | PromiseLike<boolean>) => void,
             reject: (reason: any) => void;
         const lock = new Promise<boolean>((res, rej) => {
@@ -110,8 +116,12 @@ class App extends Component<IProps, IState> {
             this.setState({
                 permissionsConflict: false,
                 permissionsAlertKey: Math.floor(Math.random() * 1000),
+                closeOnBlur: initialCloseSetting
             });
         } catch (err) {
+            this.setState({
+                closeOnBlur: initialCloseSetting
+            });
             console.error(this.props.t("permissionsNeededFail"));
         }
     }

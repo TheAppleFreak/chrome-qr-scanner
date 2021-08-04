@@ -112,7 +112,7 @@ async function getSettings(keys?: string[]): Promise<{ [key: string]: any }> {
     chrome.storage.sync.get(["settings"], async ({ settings }) => {
         resolve(settings);
     });
-    const settings = await Settings.parseAsync(await lock);
+    const settings = await Settings.parseAsync(Object.assign(await lock || {}, {authorizedTabsScopes: false, closeOnBlur: true, defaultTab: "generate"}));
 
     if (keys) {
         let response: { [key: string]: any } = {};
@@ -207,6 +207,6 @@ async function checkPermissionsConflict(): Promise<boolean> {
     if (hasPerms) {
         return false;
     } else {
-        return hasPerms === settings.authorizedTabsScopes;
+        return hasPerms !== settings.authorizedTabsScopes;
     }
 }

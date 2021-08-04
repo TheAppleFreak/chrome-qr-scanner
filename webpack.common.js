@@ -112,10 +112,10 @@ module.exports = {
                 }
             }
         }),
-        // new CopyWebpackPlugin({
-        //     patterns: [
-        //         { from: path.join(__dirname, "src", "static"), to: "." }
-        //     ]
-        // }),
+        new CopyWebpackPlugin({
+            patterns: [
+                { from: path.join(__dirname, "src", "static"), to: "." }
+            ]
+        }),
     ]
 }

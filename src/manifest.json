@@ -1,12 +1,17 @@
 {
-    "name": "QR Scanner",
+    "name": "QR Utilities",
     "manifest_version": 3,
     "offline_enabled": true,
     "action": {
-        "default_title": "QR Scanner"
+        "default_title": "QR Utilities"
     },
     "background": {
         "service_worker": "background.js"
+    },
+    "icons": {
+        "16": "logo16.png",
+        "48": "logo48.png",
+        "128": "logo128.png"
     },
     "options_ui": {
         "page": "options.html",

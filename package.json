@@ -1,7 +1,7 @@
 {
-  "name": "chrome-qr-scanner",
+  "name": "chrome-qr-utilities",
   "version": "0.5.0",
-  "description": "A Chrome extension that allows you to create and scan QR codes using your webcam.",
+  "description": "A Chrome extension that allows you to create QR codes from all of your open tabs.",
   "private": true,
   "scripts": {
     "build": "npm run webpack",
