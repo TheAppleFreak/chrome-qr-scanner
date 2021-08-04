@@ -1,5 +1,7 @@
-import { Message, Settings } from "../types";
 import uniq from "lodash/uniq";
+
+import { Message, Settings } from "@common/validators";
+import type { TMessage, ISettings, TSetSettings } from "@common/interfaces";
 
 chrome.action.onClicked.addListener(async (tab) => {
     // Get tabs and store them until the new window requests them
@@ -23,12 +25,14 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
 });
 
-chrome.runtime.onMessage.addListener(async ({ msgType, data }: Message) => {
-    switch (msgType) {
+chrome.runtime.onMessage.addListener(async (payload: TMessage) => {
+    payload = await Message.parseAsync(payload);
+
+    switch (payload.msgType) {
         case "getInitialTabs": {
             chrome.storage.local.get(
                 ["initialTab", "allTabs", "initialTabGroups"],
-                ({ initialTab, allTabs, initialTabGroups }) => {
+                async ({ initialTab, allTabs, initialTabGroups }) => {
                     chrome.runtime.sendMessage({
                         msgType: "initialTabs",
                         data: {
@@ -69,8 +73,8 @@ chrome.runtime.onMessage.addListener(async ({ msgType, data }: Message) => {
             break;
         }
         case "getSettings": {
-            const settings = await getSettings();
-            console.log(settings);
+            const settings = await getSettings(payload.data);
+
             chrome.runtime.sendMessage({
                 msgType: "settings",
                 data: {
@@ -81,30 +85,41 @@ chrome.runtime.onMessage.addListener(async ({ msgType, data }: Message) => {
             break;
         }
         case "setSettings": {
-            await setSettings(data);
+            await setSettings(payload.data);
+
+            break;
+        }
+        case "checkPermissionsConflict": {
+            const status = await checkPermissionsConflict();
+
+            chrome.runtime.sendMessage({
+                msgType: "permissionsConflict",
+                data: status,
+            });
 
             break;
         }
         default:
-            throw new Error(`Unknown message type ${msgType}`);
+            throw new Error(`Unknown message type ${payload.msgType}`);
     }
 });
 
 async function getSettings(keys?: string[]): Promise<{ [key: string]: any }> {
-    let resolve: (value: Settings) => void;
-    const lock = new Promise<Settings>((res) => {
+    let resolve: (value: ISettings) => void;
+    const lock = new Promise<ISettings>((res) => {
         resolve = res;
     });
-    chrome.storage.sync.get(["settings"], ({ settings }) => {
+    chrome.storage.sync.get(["settings"], async ({ settings }) => {
         resolve(settings);
     });
-    const settings: Settings = Object.assign({}, await lock);
+    const settings = await Settings.parseAsync(await lock);
 
     if (keys) {
         let response: { [key: string]: any } = {};
         const settingsKeys = Object.keys(settings);
         uniq(keys).map((key) => {
             if (settingsKeys.includes(key)) {
+                // @ts-ignore (I don't know how else to do this)
                 response[key] = settings[key];
             } else {
                 response[key] = undefined;
@@ -117,7 +132,7 @@ async function getSettings(keys?: string[]): Promise<{ [key: string]: any }> {
     }
 }
 
-async function setSettings(data: { [key: string]: any }): Promise<void> {
+async function setSettings(data: TSetSettings): Promise<void> {
     const settings = Object.assign({}, await getSettings(), data);
 
     chrome.storage.sync.set({ settings });
@@ -170,33 +185,28 @@ async function getTabGroups(
     }
 }
 
-async function activateAuthorizedPermissions(): Promise<void> {
-    const auth = await getSettings(["authorizedTabsScopes"]);
-
-    const scopes: string[] = [];
-    if (auth.authorizedTabsScopes) {
-        scopes.push("tabs", "tabGroups");
-    }
-
-    let resolve: (value: boolean | PromiseLike<boolean>) => void,
-        reject: (reason: any) => void;
-    const lock = new Promise<boolean>((res, rej) => {
+async function checkPermissionsConflict(): Promise<boolean> {
+    let resolve: (value: boolean) => void;
+    const lock: Promise<boolean> = new Promise((res) => {
         resolve = res;
-        reject = rej;
     });
-
-    chrome.permissions.request(
-        {
-            permissions: ["tabs", "tabGroups"],
-        },
-        (success) => {
-            if (success) {
-                resolve(success);
-            } else {
-                reject(success);
-            }
+    chrome.permissions.contains(
+        { permissions: ["tabs", "tabGroups"] },
+        (result) => {
+            resolve(result);
         },
     );
 
-    await lock;
+    const [hasPerms, settings] = await Promise.all([
+        lock,
+        getSettings(["authorizedTabsScopes"]) as Promise<{
+            authorizedTabsScopes: boolean;
+        }>,
+    ]);
+
+    if (hasPerms) {
+        return false;
+    } else {
+        return hasPerms === settings.authorizedTabsScopes;
+    }
 }

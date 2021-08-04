@@ -5,6 +5,7 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const WebpackExtensionManifestPlugin = require("webpack-extension-manifest-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
 const baseManifest = require("./src/manifest.json");
 const package_ = require("./package.json");
@@ -63,7 +64,10 @@ module.exports = {
         ]
     },
     resolve: {
-        extensions: [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"]
+        extensions: [".ts", ".tsx", ".js", ".jsx", ".css", ".scss"],
+        plugins: [
+            new TsconfigPathsPlugin()
+        ]
     },
     plugins: [
         new webpack.ProgressPlugin(),

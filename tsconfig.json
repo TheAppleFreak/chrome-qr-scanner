@@ -14,6 +14,14 @@
         "emitDecoratorMetadata": true,
         "allowSyntheticDefaultImports": true,
         "jsx": "preserve",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "paths": {
+            "@/*": ["*"],
+            "@ts/*": ["ts/*"],
+            "@common/*": ["ts/common/*"],
+            "@locales/*": ["locales/*"],
+            "@static/*": ["static/*"],
+            "@styles/*": ["styles/*"]
+        }
     }
 }

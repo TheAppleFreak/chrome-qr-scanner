@@ -9,9 +9,9 @@ import {
     Stack,
 } from "@chakra-ui/react";
 import { withTranslation, WithTranslation } from "react-i18next";
-import SettingsValidator from "../settingsSchema";
 
-import { Message, Settings } from "../types";
+import { Message, Settings, SettingsPartial } from "@common/validators";
+import type { ISettings, TMessage } from "@common/interfaces";
 
 class App extends Component<IProps, IState> {
     constructor(props: IProps) {
@@ -21,6 +21,7 @@ class App extends Component<IProps, IState> {
             isLoaded: false,
             authorizedTabsScopes: false,
             closeOnBlur: false,
+            defaultTab: "generate",
         };
     }
 
@@ -32,19 +33,20 @@ class App extends Component<IProps, IState> {
         chrome.runtime.sendMessage({ msgType: "getSettings" });
     }
 
-    async onMessage({ msgType, data }: Message) {
-        switch (msgType) {
-            case "settings": {
-                if (SettingsValidator(data.settings)) {
-                    const settings: Settings = data.settings;
-                    this.setState({
-                        isLoaded: true,
+    async onMessage(payload: TMessage) {
+        payload = await Message.parseAsync(payload);
 
-                        // TODO: Figure out some way to automate this
-                        authorizedTabsScopes: settings.authorizedTabsScopes!,
-                        closeOnBlur: settings.closeOnBlur!,
-                    });
-                }
+        switch (payload.msgType) {
+            case "settings": {
+                const settings = payload.data.settings;
+                this.setState({
+                    isLoaded: true,
+
+                    // TODO: Figure out some way to automate this
+                    authorizedTabsScopes: settings.authorizedTabsScopes,
+                    closeOnBlur: settings.closeOnBlur,
+                    defaultTab: settings.defaultTab,
+                });
 
                 break;
             }
@@ -188,12 +190,6 @@ export default withTranslation(["options"])(App);
 
 interface IProps extends WithTranslation {}
 
-interface IState {
+interface IState extends ISettings {
     isLoaded: boolean;
-
-    // Permissions authorization
-    authorizedTabsScopes: boolean;
-
-    // Popup settings
-    closeOnBlur: boolean;
 }

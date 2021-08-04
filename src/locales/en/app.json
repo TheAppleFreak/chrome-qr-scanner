@@ -1,4 +1,9 @@
 {
     "generateTab": "Generate",
+    "permissionsGrantedTitle": "Permission granted",
+    "permissionsGrantedDesc": "Excellent! Everything should be working correctly now.",
+    "permissionsNeededTitle": "Attention needed!",
+    "permissionsNeededDesc": "Your settings indicate that you want this extension to be able to make QR codes from all of your currently open tabs. Perhaps because you're on a new computer, however, I need to ask you again for that access.",
+    "permissionsNeededBtn": "Grant",
     "scanTab": "Scan"
 }

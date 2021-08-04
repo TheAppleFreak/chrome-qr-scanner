@@ -2,7 +2,6 @@ import React, { Component, Suspense, ChangeEvent, Fragment } from "react";
 import { Box, Button, HStack, Input, Spinner, VStack } from "@chakra-ui/react";
 import Select from "react-select";
 import { withTranslation, WithTranslation } from "react-i18next";
-import { Message } from "../types";
 // This is tree-shaking friendly
 import uniq from "lodash/uniq";
 import uniqWith from "lodash/uniqWith";
@@ -10,6 +9,8 @@ import isEqual from "lodash/isEqual";
 import md5 from "md5";
 import * as clipboard from "clipboard-polyfill";
 import { IoCopy, IoDownload, IoCheckmark } from "react-icons/io5";
+import { Message } from "@common/validators";
+import type { TMessage } from "@common/interfaces";
 
 const QRGenerate = React.lazy(() => import("./QRGenerate"));
 
@@ -52,13 +53,15 @@ class GenerateTab extends Component<Props, State> {
         chrome.runtime.sendMessage({ msgType: "getInitialTabs" });
     }
 
-    onMessage({ msgType, data }: Message) {
-        switch (msgType) {
+    onMessage(payload: TMessage) {
+        payload = Message.parse(payload);
+
+        switch (payload.msgType) {
             case "initialTabs": {
-                const initialTab: chrome.tabs.Tab = data.initialTab;
-                const allTabs: chrome.tabs.Tab[] = data.allTabs;
+                const initialTab: chrome.tabs.Tab = payload.data.initialTab;
+                const allTabs: chrome.tabs.Tab[] = payload.data.allTabs;
                 const initialTabGroups: chrome.tabGroups.TabGroup[] =
-                    data.initialTabGroups;
+                    payload.data.initialTabGroups;
                 const options: Array<SelGroup | SelOption> = [];
 
                 if (allTabs.length === 1) {

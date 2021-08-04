@@ -3,9 +3,9 @@ import ReactDOM from "react-dom";
 import { ChakraProvider } from "@chakra-ui/react";
 
 import App from "./App";
-import theme from "../theme";
+import theme from "@common/theme";
 
-import "../i18n";
+import "@common/i18n";
 
 ReactDOM.render(
     <>
