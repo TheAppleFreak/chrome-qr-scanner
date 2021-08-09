@@ -1,5 +1,9 @@
 import React, { Component } from "react";
 import { Image, Skeleton, useColorMode } from "@chakra-ui/react";
+
+// TODO: Rewrite to use dynamic module loading, which will allow switching out the QR generator at runtime depending on user choice
+// QRCdoe will be used for the "traditional" style QR codes
+// awesome-qr will be used for fancy QR code styles
 import QRCode from "qrcode";
 
 // I think I have to do it this way because it might be annoying to get props on the main component otherwise

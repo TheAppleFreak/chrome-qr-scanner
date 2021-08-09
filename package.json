@@ -17,25 +17,28 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TheAppleFreak/chrome-qr-scanner.git"
+    "url": "git+https://github.com/TheAppleFreak/chrome-qr-utilities.git"
   },
   "keywords": [
     "chrome",
     "extension",
     "qr",
     "scanner",
-    "generator"
+    "generator",
+    "utilities"
   ],
   "author": "TheAppleFreak <TheAppleFreak@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/TheAppleFreak/chrome-qr-scanner/issues"
+    "url": "https://github.com/TheAppleFreak/chrome-qr-utilities/issues"
   },
-  "homepage": "https://github.com/TheAppleFreak/chrome-qr-scanner#readme",
+  "homepage": "https://github.com/TheAppleFreak/chrome-qr-utilities#readme",
   "dependencies": {
     "@chakra-ui/react": "^1.6.5",
     "@emotion/react": "^11.4.0",
     "@emotion/styled": "^11.3.0",
+    "@reduxjs/toolkit": "^1.6.1",
+    "awesome-qr": "^2.1.4-rc.0",
     "clipboard-polyfill": "^3.0.3",
     "i18next": "^20.3.5",
     "i18next-browser-languagedetector": "^6.1.2",
@@ -47,7 +50,9 @@
     "react-dom": "^17.0.2",
     "react-i18next": "^11.11.4",
     "react-icons": "^4.2.0",
+    "react-redux": "^7.2.4",
     "react-select": "^4.3.1",
+    "redux": "^4.1.1",
     "zod": "^3.7.1"
   },
   "devDependencies": {

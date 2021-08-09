@@ -5,6 +5,7 @@ const currentTabs = z.object({
     initialTab: z.any(),
     allTabs: z.any().array().nonempty(),
     tabGroups: z.any().array(),
+    windows: z.any().array(),
 });
 
 export default currentTabs;

@@ -2,15 +2,18 @@ import React, { Component, Suspense, ChangeEvent, Fragment } from "react";
 import { Box, Button, HStack, Input, Spinner, VStack } from "@chakra-ui/react";
 import Select from "react-select";
 import { withTranslation, WithTranslation } from "react-i18next";
-// This is tree-shaking friendly
-import uniq from "lodash/uniq";
-import uniqWith from "lodash/uniqWith";
-import isEqual from "lodash/isEqual";
 import md5 from "md5";
 import * as clipboard from "clipboard-polyfill";
 import { IoCopy, IoDownload, IoCheckmark } from "react-icons/io5";
+// This is tree-shaking friendly
+import _uniq from "lodash/uniq";
+import _uniqWith from "lodash/uniqWith";
+import _isEqual from "lodash/isEqual";
+import _merge from "lodash/merge";
+
 import { Message } from "@common/validators";
-import type { TMessage } from "@common/interfaces";
+import defaultSettings from "@common/store/defaultState";
+import type { TMessage, ISettings } from "@common/interfaces";
 
 const QRGenerate = React.lazy(() => import("./QRGenerate"));
 
@@ -40,6 +43,7 @@ class GenerateTab extends Component<Props, State> {
                 label: this.props.t("saveBtn"),
                 variant: "outline",
             },
+            generate: defaultSettings.generate,
         };
 
         this.qrRef = React.createRef();
@@ -47,21 +51,19 @@ class GenerateTab extends Component<Props, State> {
 
     componentDidMount() {
         // Set up message handlers, since this appears to be a big buggy in the constructor
-        chrome.runtime.onMessage.addListener((msg) => this.onMessage(msg));
+        chrome.runtime.onMessage.addListener(this.onMessage);
 
         // Send request for initial tabs
         chrome.runtime.sendMessage({ msgType: "getInitialTabs" });
     }
 
-    onMessage(payload: TMessage) {
+    onMessage = async (payload: TMessage) => {
         payload = Message.parse(payload);
 
         switch (payload.msgType) {
             case "initialTabs": {
-                const initialTab: chrome.tabs.Tab = payload.data.initialTab;
-                const allTabs: chrome.tabs.Tab[] = payload.data.allTabs;
-                const initialTabGroups: chrome.tabGroups.TabGroup[] =
-                    payload.data.initialTabGroups;
+                const { initialTab, initialTabGroups, allTabs } = payload.data;
+
                 const options: Array<SelGroup | SelOption> = [];
 
                 if (allTabs.length === 1) {
@@ -103,17 +105,22 @@ class GenerateTab extends Component<Props, State> {
                     }
 
                     // Sort by window, then by tab group
-                    let groups: { windowId: number; groupId: number }[] = [];
+                    let groups: {
+                        windowId: number;
+                        groupId: number;
+                        incognito: boolean;
+                    }[] = [];
                     let uniqWindows: number[] = [];
                     allTabs.map((tab) => {
                         groups.push({
                             windowId: tab.windowId,
                             groupId: tab.groupId,
+                            incognito: tab.incognito,
                         });
                         uniqWindows.push(tab.windowId);
                     });
 
-                    // Sort by IDs for neatness (and convert the sets to arrays so we can index them)
+                    // Sort by IDs for neatness
                     groups = groups.sort((group1, group2) => {
                         if (
                             group1.windowId < group2.windowId ||
@@ -124,8 +131,8 @@ class GenerateTab extends Component<Props, State> {
                             return 1;
                         }
                     });
-                    groups = uniqWith(groups, isEqual);
-                    uniqWindows = uniq(uniqWindows.sort((a, b) => a - b));
+                    groups = _uniqWith(groups, _isEqual);
+                    uniqWindows = _uniq(uniqWindows.sort((a, b) => a - b));
 
                     // Finally, construct the option groups
                     groups.map((group) => {
@@ -136,6 +143,9 @@ class GenerateTab extends Component<Props, State> {
                         if (group.groupId === -1) {
                             groupLabel = this.props.t("selWindowUnsortedTabs", {
                                 winIndex: winIndex + 1,
+                                context: group.incognito
+                                    ? "incognito"
+                                    : undefined,
                             });
                         } else {
                             const tabGroup = initialTabGroups.find((grp) => {
@@ -153,6 +163,9 @@ class GenerateTab extends Component<Props, State> {
                                         winIndex: winIndex + 1,
                                         groupName: tabGroup.title,
                                         color: tabGroup.color,
+                                        context: group.incognito
+                                            ? "incognito"
+                                            : undefined,
                                     },
                                 );
                             } else {
@@ -161,6 +174,9 @@ class GenerateTab extends Component<Props, State> {
                                     {
                                         winIndex: winIndex + 1,
                                         color: tabGroup.color,
+                                        context: group.incognito
+                                            ? "incognito"
+                                            : undefined,
                                     },
                                 );
                             }
@@ -186,7 +202,7 @@ class GenerateTab extends Component<Props, State> {
                 }
 
                 options.push({
-                    label: "---------------",
+                    label: this.props.t("selOtherGroup"),
                     options: [
                         {
                             label: this.props.t("selManualEntry"),
@@ -210,9 +226,9 @@ class GenerateTab extends Component<Props, State> {
                 break;
             }
         }
-    }
+    };
 
-    selOnChange(e: SelGroup | SelOption | null) {
+    selOnChange = (e: SelGroup | SelOption | null) => {
         if ((e as SelOption).value !== "manual") {
             this.setState({
                 data: (e as SelOption).value,
@@ -226,16 +242,18 @@ class GenerateTab extends Component<Props, State> {
                 qrKey: md5(""),
             });
         }
-    }
+    };
 
-    inputOnChange(e: ChangeEvent<HTMLInputElement>) {
+    inputOnChange = (e: ChangeEvent<HTMLInputElement>) => {
         this.setState({
             data: (e.target as HTMLInputElement).value,
             qrKey: md5((e.target as HTMLInputElement).value),
         });
-    }
+    };
 
-    async copyOnClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+    copyOnClick = async (
+        e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    ) => {
         const rendered: string = await this.qrRef!.current.renderQRCode();
         // The ClipboardItem interface doesn't appear to be in Chrome as of this writing
         const item = new clipboard.ClipboardItem({
@@ -267,9 +285,11 @@ class GenerateTab extends Component<Props, State> {
 
             this.copyBtnTimeout = undefined;
         }, 3000);
-    }
+    };
 
-    async saveOnClick(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
+    saveOnClick = async (
+        e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    ) => {
         const rendered: string = await this.qrRef!.current.renderQRCode();
 
         const link = document.createElement("a");
@@ -302,7 +322,7 @@ class GenerateTab extends Component<Props, State> {
 
             this.saveBtnTimeout = undefined;
         }, 3000);
-    }
+    };
 
     render() {
         return (
@@ -311,10 +331,27 @@ class GenerateTab extends Component<Props, State> {
                     options={this.state.options}
                     key={this.state.selKey}
                     styles={{
-                        option: (styles) => {
+                        option: (styles, state) => {
                             return {
                                 ...styles,
-                                color: "#111",
+                                color: state.isSelected ? "#FFF" : "#111",
+                                whiteSpace: "pre-wrap",
+                                textAlign: "left",
+
+                                "&:after":
+                                    state.data.value !== "manual"
+                                        ? {
+                                              content: `"${state.data.value.replace(
+                                                  /"/g,
+                                                  '"',
+                                              )}"`,
+                                              color: state.isSelected
+                                                  ? "#EEE"
+                                                  : "#666",
+                                              fontSize: "85%",
+                                              display: "block",
+                                          }
+                                        : undefined,
                             };
                         },
                     }}
@@ -327,7 +364,7 @@ class GenerateTab extends Component<Props, State> {
                                 : this.state.options[0]
                             : undefined
                     }
-                    onChange={(ev) => this.selOnChange(ev)}
+                    onChange={this.selOnChange}
                 />
 
                 <Box pt="4" pb="2" minHeight="var(--chakra-sizes-10)">
@@ -338,7 +375,7 @@ class GenerateTab extends Component<Props, State> {
                                 placeholder={this.props.t(
                                     "inputUrlPlaceholder",
                                 )}
-                                onChange={(e) => this.inputOnChange(e)}
+                                onChange={this.inputOnChange}
                             />
                         ) : undefined
                     ) : undefined}
@@ -369,7 +406,7 @@ class GenerateTab extends Component<Props, State> {
                                     colorScheme={this.state.copyBtn.color}
                                     variant={this.state.copyBtn.variant}
                                     disabled={this.state.data === ""}
-                                    onClick={(e) => this.copyOnClick(e)}
+                                    onClick={this.copyOnClick}
                                 >
                                     {this.state.copyBtn.label}
                                 </Button>
@@ -379,7 +416,7 @@ class GenerateTab extends Component<Props, State> {
                                     colorScheme={this.state.saveBtn.color}
                                     variant={this.state.saveBtn.variant}
                                     disabled={this.state.data === ""}
-                                    onClick={(e) => this.saveOnClick(e)}
+                                    onClick={this.saveOnClick}
                                 >
                                     {this.state.saveBtn.label}
                                 </Button>
@@ -396,7 +433,7 @@ export default withTranslation(["generateTab"])(GenerateTab);
 
 interface Props extends WithTranslation {}
 
-interface State {
+interface State extends Pick<ISettings, "generate"> {
     data?: string;
     selected?: SelGroup | SelOption | null;
     selKey: string;

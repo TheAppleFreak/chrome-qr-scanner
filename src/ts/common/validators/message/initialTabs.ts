@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-// TODO: Figure out better schemas
+import { Tab, TabGroup } from "../types";
+
 const initialTabs = z.object({
-    initialTab: z.any(),
-    allTabs: z.any().array().nonempty(),
-    initialTabGroups: z.any().array(),
+    initialTab: Tab,
+    allTabs: Tab.array().nonempty(),
+    initialTabGroups: TabGroup.array(),
 });
 
 export default initialTabs;

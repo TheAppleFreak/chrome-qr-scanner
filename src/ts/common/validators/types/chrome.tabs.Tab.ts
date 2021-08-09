@@ -1,0 +1,26 @@
+import { z } from "zod";
+
+export const Tab = z.object({
+    active: z.boolean(),
+    audible: z.boolean().optional(),
+    autoDiscardable: z.boolean(),
+    discarded: z.boolean(),
+    favIconUrl: z.string().optional(),
+    groupId: z.number().int(),
+    height: z.number().int().optional(),
+    highlighted: z.boolean(),
+    id: z.number().int().optional(),
+    incognito: z.boolean(),
+    index: z.number().int(),
+    mutedInfo: z.any().optional(),
+    openerTabId: z.number().int().optional(),
+    pendingUrl: z.string().optional(),
+    pinned: z.boolean(),
+    selected: z.boolean().optional(),
+    sessionId: z.string().optional(),
+    status: z.any().optional(),
+    title: z.string().optional(),
+    url: z.string().optional(),
+    width: z.number().optional(),
+    windowId: z.number().int(),
+});

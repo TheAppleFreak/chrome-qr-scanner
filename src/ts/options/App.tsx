@@ -9,9 +9,13 @@ import {
     Stack,
 } from "@chakra-ui/react";
 import { withTranslation, WithTranslation } from "react-i18next";
+import _merge from "lodash/merge";
+import _get from "lodash/get";
+import _set from "lodash/set";
 
 import { Message, Settings, SettingsPartial } from "@common/validators";
-import type { ISettings, TMessage } from "@common/interfaces";
+import defaultSettings from "@common/store/defaultState";
+import type { ISettings, ISettingsPartial, TMessage } from "@common/interfaces";
 
 class App extends Component<IProps, IState> {
     constructor(props: IProps) {
@@ -19,9 +23,7 @@ class App extends Component<IProps, IState> {
 
         this.state = {
             isLoaded: false,
-            authorizedTabsScopes: false,
-            closeOnBlur: false,
-            defaultTab: "generate",
+            ...defaultSettings,
         };
     }
 
@@ -39,13 +41,10 @@ class App extends Component<IProps, IState> {
         switch (payload.msgType) {
             case "settings": {
                 const settings = payload.data.settings;
+
                 this.setState({
                     isLoaded: true,
-
-                    // TODO: Figure out some way to automate this
-                    authorizedTabsScopes: settings.authorizedTabsScopes,
-                    closeOnBlur: settings.closeOnBlur,
-                    defaultTab: settings.defaultTab,
+                    ...settings,
                 });
 
                 break;
@@ -53,7 +52,7 @@ class App extends Component<IProps, IState> {
         }
     }
 
-    async tabsPermCheckboxOnChange(e: ChangeEvent<HTMLInputElement>) {
+    tabsPermCheckboxOnChange = async (e: ChangeEvent<HTMLInputElement>) => {
         if ((e.target as HTMLInputElement).checked) {
             let resolve: (value: boolean | PromiseLike<boolean>) => void,
                 reject: (reason: any) => void;
@@ -80,25 +79,36 @@ class App extends Component<IProps, IState> {
                 chrome.runtime.sendMessage({
                     msgType: "setSettings",
                     data: {
-                        authorizedTabsScopes: true,
+                        permissions: {
+                            authorizedTabsScopes: true,
+                        },
                     },
-                });
+                } as TMessage);
 
-                this.setState({
-                    authorizedTabsScopes: true,
-                });
+                this.setState(
+                    _merge({ ...this.state }, {
+                        permissions: {
+                            authorizedTabsScopes: true,
+                        },
+                    } as ISettingsPartial),
+                );
             } catch (e) {
                 // TODO: Figure out how to alert user that this failed
                 chrome.runtime.sendMessage({
                     msgType: "setSettings",
                     data: {
-                        authorizedTabsScopes: false,
+                        permissions: {
+                            authorizedTabsScopes: false,
+                        },
                     },
-                });
+                } as TMessage);
 
-                this.setState({
-                    authorizedTabsScopes: false,
-                });
+                const state = _merge({ ...this.state }, {
+                    permissions: {
+                        authorizedTabsScopes: true,
+                    },
+                } as ISettingsPartial);
+                this.setState(state);
             }
         } else {
             chrome.permissions.remove({
@@ -108,34 +118,45 @@ class App extends Component<IProps, IState> {
             chrome.runtime.sendMessage({
                 msgType: "setSettings",
                 data: {
+                    permissions: {
+                        authorizedTabsScopes: false,
+                    },
+                },
+            } as TMessage);
+
+            const state = _merge({ ...this.state }, {
+                permissions: {
                     authorizedTabsScopes: false,
                 },
-            });
-
-            this.setState({
-                authorizedTabsScopes: false,
-            });
+            } as ISettingsPartial);
+            this.setState(state);
         }
-    }
+    };
 
-    async checkboxOnChange(e: ChangeEvent<HTMLInputElement>) {
+    checkboxOnChange = async (e: ChangeEvent<HTMLInputElement>) => {
         const propName = (e.target as HTMLInputElement).name;
 
-        let update: { [key: string]: any } = {};
-        update[propName] = (e.target as HTMLInputElement).checked;
+        const update = await Settings.parseAsync(
+            _set(
+                {
+                    ...this.state,
+                },
+                propName,
+                (e.target as HTMLInputElement).checked,
+            ),
+        );
 
-        // @ts-ignore (I don't know how to fix this, admittedly...)
         this.setState(update);
 
         chrome.runtime.sendMessage({
             msgType: "setSettings",
             data: update,
-        });
-    }
+        } as TMessage);
+    };
 
     render() {
         return (
-            <Container minWidth="lg" minHeight="300px">
+            <Container minWidth="xl" minHeight="400px">
                 <Skeleton isLoaded={this.state.isLoaded}>
                     <Heading pt={2} size="2xl">
                         {this.props.t("optionsHeading")}
@@ -149,13 +170,16 @@ class App extends Component<IProps, IState> {
                         <CheckboxGroup>
                             <Stack direction="column">
                                 <Checkbox
-                                    name="authorizedTabScopes"
-                                    isChecked={this.state.authorizedTabsScopes}
-                                    onChange={(e) =>
-                                        this.tabsPermCheckboxOnChange(e)
+                                    name="permissions.authorizedTabScopes"
+                                    isChecked={
+                                        this.state.permissions
+                                            .authorizedTabsScopes
                                     }
+                                    onChange={this.tabsPermCheckboxOnChange}
                                 >
-                                    {this.props.t("chkTabsAuth")}
+                                    {this.props.t(
+                                        "permissions.authorizedTabScopes.label",
+                                    )}
                                 </Checkbox>
                             </Stack>
                         </CheckboxGroup>
@@ -171,11 +195,49 @@ class App extends Component<IProps, IState> {
                         <CheckboxGroup>
                             <Stack direction="column">
                                 <Checkbox
-                                    name="closeOnBlur"
-                                    isChecked={this.state.closeOnBlur}
-                                    onChange={(e) => this.checkboxOnChange(e)}
+                                    name="popup.closeOnBlur"
+                                    isChecked={this.state.popup.closeOnBlur}
+                                    onChange={this.checkboxOnChange}
                                 >
-                                    {this.props.t("chkCloseOnBlur")}
+                                    {this.props.t("popup.closeOnBlur.label")}
+                                </Checkbox>
+                            </Stack>
+                        </CheckboxGroup>
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack p={4}>
+                        <Heading size="lg">
+                            {this.props.t("generateHeading")}
+                        </Heading>
+
+                        <CheckboxGroup>
+                            <Stack direction="column">
+                                <Stack>temp</Stack>
+                            </Stack>
+                        </CheckboxGroup>
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack p={4}>
+                        <Heading size="lg">
+                            {this.props.t("scanHeading")}
+                        </Heading>
+
+                        <CheckboxGroup>
+                            <Stack direction="column">
+                                <Checkbox
+                                    name="scan.startWebcamImmediately"
+                                    isChecked={
+                                        this.state.scan.startWebcamImmediately
+                                    }
+                                    onChange={this.checkboxOnChange}
+                                >
+                                    {this.props.t(
+                                        "scan.startWebcamImmediately.label",
+                                    )}
                                 </Checkbox>
                             </Stack>
                         </CheckboxGroup>

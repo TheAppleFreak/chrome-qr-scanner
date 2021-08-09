@@ -1,7 +1,16 @@
-import uniq from "lodash/uniq";
+import _uniq from "lodash/uniq";
+import _merge from "lodash/merge";
+import _get from "lodash/get";
+import _set from "lodash/set";
 
-import { Message, Settings } from "@common/validators";
-import type { TMessage, ISettings, TSetSettings } from "@common/interfaces";
+import { Message, Settings, SettingsPartial } from "@common/validators";
+import defaultSettings from "@common/store/defaultState";
+import type {
+    TMessage,
+    ISettings,
+    TSetSettings,
+    ISettingsPartial,
+} from "@common/interfaces";
 
 chrome.action.onClicked.addListener(async (tab) => {
     // Get tabs and store them until the new window requests them
@@ -40,7 +49,7 @@ chrome.runtime.onMessage.addListener(async (payload: TMessage) => {
                             allTabs,
                             initialTabGroups,
                         },
-                    });
+                    } as TMessage);
                 },
             );
 
@@ -68,7 +77,7 @@ chrome.runtime.onMessage.addListener(async (payload: TMessage) => {
                     allTabs,
                     tabGroups,
                 },
-            });
+            } as TMessage);
 
             break;
         }
@@ -80,7 +89,7 @@ chrome.runtime.onMessage.addListener(async (payload: TMessage) => {
                 data: {
                     settings,
                 },
-            });
+            } as TMessage);
 
             break;
         }
@@ -95,16 +104,21 @@ chrome.runtime.onMessage.addListener(async (payload: TMessage) => {
             chrome.runtime.sendMessage({
                 msgType: "permissionsConflict",
                 data: status,
-            });
+            } as TMessage);
 
             break;
         }
         default:
-            throw new Error(`Unknown message type ${payload.msgType}`);
+            throw new Error(`Unknown message type ${payload.msgType}.
+            Dev note: if you're getting this but are sure the message type is correct, double check that you have a \`break\` at the end of the switch.`);
     }
 });
 
-async function getSettings(keys?: string[]): Promise<{ [key: string]: any }> {
+async function getSettings(
+    keys?: string | string[],
+): Promise<ISettingsPartial> {
+    if (keys && !Array.isArray(keys)) keys = [keys];
+
     let resolve: (value: ISettings) => void;
     const lock = new Promise<ISettings>((res) => {
         resolve = res;
@@ -112,18 +126,14 @@ async function getSettings(keys?: string[]): Promise<{ [key: string]: any }> {
     chrome.storage.sync.get(["settings"], async ({ settings }) => {
         resolve(settings);
     });
-    const settings = await Settings.parseAsync(Object.assign(await lock || {}, {authorizedTabsScopes: false, closeOnBlur: true, defaultTab: "generate"}));
+    const settings = await Settings.parseAsync(
+        _merge(defaultSettings, { ...(await lock) }),
+    );
 
     if (keys) {
         let response: { [key: string]: any } = {};
-        const settingsKeys = Object.keys(settings);
-        uniq(keys).map((key) => {
-            if (settingsKeys.includes(key)) {
-                // @ts-ignore (I don't know how else to do this)
-                response[key] = settings[key];
-            } else {
-                response[key] = undefined;
-            }
+        _uniq(keys).map((key) => {
+            _set(response, key, _get(settings, key));
         });
 
         return response;
@@ -133,25 +143,35 @@ async function getSettings(keys?: string[]): Promise<{ [key: string]: any }> {
 }
 
 async function setSettings(data: TSetSettings): Promise<void> {
-    const settings = Object.assign({}, await getSettings(), data);
+    const [oldSettings, incoming] = await Promise.all([
+        getSettings(),
+        SettingsPartial.parseAsync(data),
+    ]);
+    const settings = _merge({ ...oldSettings }, incoming);
 
     chrome.storage.sync.set({ settings });
+}
+
+function hasPermissions(permissions: string | string[]): Promise<boolean> {
+    if (!Array.isArray(permissions)) {
+        permissions = [permissions];
+    }
+
+    let resolve: (value: boolean) => void;
+    const lock: Promise<boolean> = new Promise((res) => {
+        resolve = res;
+    });
+    chrome.permissions.contains({ permissions }, (result) => {
+        resolve(result);
+    });
+
+    return lock;
 }
 
 async function getTabs(
     activeOnly: boolean = false,
 ): Promise<chrome.tabs.Tab[]> {
-    // Get tabs before we open the scanner window
-    // Since this API isn't promisified yet, though, we need to use a lock
-    let resolve: (value: boolean) => void;
-    const lock: Promise<boolean> = new Promise((res) => {
-        resolve = res;
-    });
-    chrome.permissions.contains({ permissions: ["tabs"] }, (result) => {
-        resolve(result);
-    });
-
-    const hasTabsPerms = await lock;
+    const hasTabsPerms = await hasPermissions("tabs");
 
     let options = {};
     if (activeOnly || !hasTabsPerms) {
@@ -164,49 +184,48 @@ async function getTabs(
 async function getTabGroups(
     throwErr: boolean = true,
 ): Promise<chrome.tabGroups.TabGroup[]> {
-    // This API isn't promisified yet, so we need to use a lock
-    let resolve: (value: boolean) => void;
-    const lock: Promise<boolean> = new Promise((res) => {
-        resolve = res;
-    });
-    chrome.permissions.contains({ permissions: ["tabGroups"] }, (result) => {
-        resolve(result);
-    });
-    const hasPermissions = await lock;
+    const hasPerms = await hasPermissions(["tabGroups"]);
 
-    if (!hasPermissions && throwErr) {
+    if (!hasPerms && throwErr) {
         throw new Error(
             "Extension does not have the tabGroups permission currently.",
         );
-    } else if (!hasPermissions && !throwErr) {
+    } else if (!hasPerms && !throwErr) {
         return [];
     } else {
         return await chrome.tabGroups.query({});
     }
 }
 
-async function checkPermissionsConflict(): Promise<boolean> {
-    let resolve: (value: boolean) => void;
-    const lock: Promise<boolean> = new Promise((res) => {
-        resolve = res;
-    });
-    chrome.permissions.contains(
-        { permissions: ["tabs", "tabGroups"] },
-        (result) => {
-            resolve(result);
-        },
-    );
+async function getWindows(
+    throwErr: boolean = true,
+): Promise<chrome.windows.Window[]> {
+    const hasPerms = await hasPermissions("tabs");
 
+    if (!hasPerms && throwErr) {
+        throw new Error(
+            "Extension does not have the tabs permission currently.",
+        );
+    } else if (!hasPerms && !throwErr) {
+        return [];
+    } else {
+        return await chrome.windows.getAll();
+    }
+}
+
+async function checkPermissionsConflict(): Promise<boolean> {
     const [hasPerms, settings] = await Promise.all([
-        lock,
-        getSettings(["authorizedTabsScopes"]) as Promise<{
-            authorizedTabsScopes: boolean;
+        hasPermissions(["tabs", "tabGroups"]),
+        getSettings("permissions.authorizedTabsScopes") as Promise<{
+            permissions: {
+                authorizedTabsScopes: boolean;
+            };
         }>,
     ]);
 
     if (hasPerms) {
         return false;
     } else {
-        return hasPerms !== settings.authorizedTabsScopes;
+        return hasPerms !== settings.permissions.authorizedTabsScopes;
     }
 }

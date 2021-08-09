@@ -1,7 +1,27 @@
 {
-    "chkCloseOnBlur": "Close popup window on loss of focus",
-    "chkTabsAuth": "Allow extension access to all tabs across all windows",
+    "generate": {
+        "showIncognitoTabs": {
+            "label": "Show Incognito tabs in tab list"
+        }
+    },
+    "generateHeading": "QR Generation Settings",
     "optionsHeading": "Options",
+    "permissions": {
+        "authorizedTabScopes": {
+            "label": "Allow access to all tabs"
+        }
+    },
     "permissionsHeading": "Permission Settings",
-    "popupHeading": "Popup Setttings"
+    "popup": {
+        "closeOnBlur": {
+            "label": "Close window on loss of focus"
+        }
+    },
+    "popupHeading": "General Setttings",
+    "scan": {
+        "startWebcamImmediately": {
+            "label": "Start webcam immediately"
+        }
+    },
+    "scanHeading": "QR Scanner Settings"
 }

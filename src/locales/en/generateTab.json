@@ -6,7 +6,11 @@
     "saveBtnSuccess": "Saved!",
     "selActiveTabGroupLabel": "Active tabs",
     "selManualEntry": "Enter URL manually...",
+    "selOtherGroup": "Other options",
     "selWindowNamedTabGroup": "$t(selWindowUnsortedTabs) - {{groupName}} ({{color}})",
+    "selWindowNamedTabGroup_incognito": "(Incognito) $t(selWindowUnsortedTabs) - {{groupName}} ({{color}})",
     "selWindowUnnamedTabGroup": "$t(selWindowUnsortedTabs) - {{color}} group",
-    "selWindowUnsortedTabs": "Window {{winIndex}}"
+    "selWindowUnnamedTabGroup_incognito": "(Incognito) $t(selWindowUnsortedTabs) - {{color}} group",
+    "selWindowUnsortedTabs": "Window {{winIndex}}",
+    "selWindowUnsortedTabs_incognito": "(Incognito) Window {{winIndex}}"
 }

@@ -12,8 +12,10 @@ import {
 } from "@chakra-ui/react";
 import { IoCamera, IoQrCode, IoOptions } from "react-icons/io5";
 import { withTranslation, WithTranslation } from "react-i18next";
+
 import { Message, Settings } from "@common/validators";
 import type { TMessage, ISettings } from "@common/interfaces";
+import defaultSettings from "@common/store/defaultState";
 
 const GenerateTab = React.lazy(() => import("./GenerateTab"));
 const PermissionsAlert = React.lazy(() => import("./PermissionsAlert"));
@@ -24,12 +26,11 @@ class App extends Component<IProps, IState> {
 
         this.state = {
             isSettingsLoaded: false,
-            closeOnBlur: true,
-            defaultTab: "generate",
-            authorizedTabsScopes: false,
             initialPermissionsConflict: false,
             permissionsConflict: false,
             permissionsAlertKey: Math.floor(Math.random() * 1000),
+            temporarilySuppressCloseOnBlur: false,
+            ...defaultSettings,
         };
     }
 
@@ -50,11 +51,12 @@ class App extends Component<IProps, IState> {
 
         switch (payload.msgType) {
             case "settings": {
-                const settings = payload.data.settings;
+                const { popup, permissions } = payload.data.settings;
 
                 this.setState({
                     isSettingsLoaded: true,
-                    ...settings,
+                    permissions,
+                    popup,
                 });
 
                 break;
@@ -75,7 +77,10 @@ class App extends Component<IProps, IState> {
     }
 
     async onBlur() {
-        if (this.state.closeOnBlur) {
+        if (
+            !this.state.temporarilySuppressCloseOnBlur &&
+            this.state.popup.closeOnBlur
+        ) {
             window.top.close();
         }
     }
@@ -83,10 +88,8 @@ class App extends Component<IProps, IState> {
     async onGrantPermsClick(
         e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
     ) {
-        // Make sure that the window won't immediately close
-        const initialCloseSetting = this.state.closeOnBlur;
         this.setState({
-            closeOnBlur: false
+            temporarilySuppressCloseOnBlur: true,
         });
 
         let resolve: (value: boolean | PromiseLike<boolean>) => void,
@@ -116,11 +119,11 @@ class App extends Component<IProps, IState> {
             this.setState({
                 permissionsConflict: false,
                 permissionsAlertKey: Math.floor(Math.random() * 1000),
-                closeOnBlur: initialCloseSetting
+                temporarilySuppressCloseOnBlur: false,
             });
         } catch (err) {
             this.setState({
-                closeOnBlur: initialCloseSetting
+                temporarilySuppressCloseOnBlur: false,
             });
             console.error(this.props.t("permissionsNeededFail"));
         }
@@ -206,9 +209,10 @@ export default withTranslation(["app"])(App);
 
 interface IProps extends WithTranslation {}
 
-interface IState extends ISettings {
+interface IState extends Pick<ISettings, "permissions" | "popup"> {
     isSettingsLoaded: boolean;
     initialPermissionsConflict: boolean;
     permissionsConflict: boolean;
     permissionsAlertKey: number;
+    temporarilySuppressCloseOnBlur: boolean;
 }
