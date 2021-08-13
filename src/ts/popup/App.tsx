@@ -17,7 +17,7 @@ import { Message, Settings } from "@common/validators";
 import type { TMessage, ISettings } from "@common/interfaces";
 import defaultSettings from "@common/store/defaultState";
 
-const GenerateTab = React.lazy(() => import("./GenerateTab"));
+const GenerateTab = React.lazy(() => import("./generate/GenerateTab"));
 const PermissionsAlert = React.lazy(() => import("./PermissionsAlert"));
 
 class App extends Component<IProps, IState> {
